@@ -59,7 +59,7 @@ server.post('/api/login', async(req, res) => {
     const foundUser = await findUser({ username })//why destructure needed 
     .first()
         if(foundUser && bcrypt.compareSync(password, foundUser.password)) {
-             res.status(200).json({ message: `Welcome ${foundUser.username}!`})
+             res.status(200).json({ message: `Welcome ${foundUser.username}, you are awesome!`})
         } else {
             res.status(401).json({ message:'Invalid credentials' })
         } 
@@ -67,6 +67,42 @@ server.post('/api/login', async(req, res) => {
             res.status(500).json({ message:"Error Logging in" })
     }
 })
+//~~~~~~~~~~~~~~~~~get endpoint~~~~~~~~~~~~~
+//helper
+function findAll(){
+    return db('users').select('id','username', 'password')
+}
+
+function authorizeUser (req, res, next) {
+    const username = req.headers['x-username']
+    const password = req.headers['x-password']
+    
+    if (!username || !password) {
+        return res.status(401).json({ message: 'Invalid Credentials' });
+    }
+
+    findUser({ username })//
+    .first()
+    .then(activeUser => {
+        if(activeUser && bcrypt.compareSync(password, activeUser.password)){
+            next()
+        } else {
+            res.status(401).json({ message: 'invalid creds' })
+        }
+    })
+    .catch(err => {
+        res.status(500).json(err)
+    })
+}
+
+server.get('/api/users', authorizeUser, async (req, res) => {
+    try{
+        const userAuthorizedFetchList = await findAll()
+        res.status(200).json(userAuthorizedFetchList)
+    } catch(error){
+        res.status(500).json({ message:"Unable to retrieve user list"})
+    }
+  })
 
 
 
