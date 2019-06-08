@@ -3,6 +3,7 @@ const helmet = require('helmet')
 const cors = require('cors')
 const bcrypt = require('bcryptjs')
 const knex = require('knex')
+const session = require('express-session')
 
 const server = express();
 
@@ -15,6 +16,19 @@ const config = {
 };
 const db = knex(config)
 
+const sessionConfig = {
+    name:'code_gorilla',
+    secret:'i like vegetables',
+    resave: false,
+    saveUninitialized:false,
+    cookie: {
+        maxAge: 1000 * 60 * 60 * 2,//two hours,
+        secure: false,
+        httpOnly: true
+    }
+}
+
+server.use(session(sessionConfig))
 server.use(helmet())
 server.use(express.json())
 server.use(cors())
