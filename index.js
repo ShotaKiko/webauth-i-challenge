@@ -6,6 +6,7 @@ const knex = require('knex')
 const session = require('express-session')
 
 const server = express();
+const restricted = require('./middleware/restricted-middleware.js')
 
 const config = {
     client: "sqlite3",
@@ -17,7 +18,7 @@ const config = {
 const db = knex(config)
 
 const sessionConfig = {
-    name:'code_gorilla',
+    name:'code-gorilla',
     secret:'i like vegetables',
     resave: false,
     saveUninitialized:false,
@@ -66,14 +67,15 @@ server.post('/api/register', async (req, res) => {
 function findUser(filter) {
     return db('users').where(filter)
 }
-
+//~~~~~~~~~~~~~~~~~~~~login~~~~~~~~~~~~~~~~~~~~~~~~~~~
 server.post('/api/login', async(req, res) => {
     let { username, password } = req.body
     try{
     const foundUser = await findUser({ username })//why destructure needed 
     .first()
         if(foundUser && bcrypt.compareSync(password, foundUser.password)) {
-             res.status(200).json({ message: `Welcome ${foundUser.username}, you are awesome!`})
+            req.session.user = foundUser;
+            res.status(200).json({ message: `Welcome ${foundUser.username}, you are awesome!`})
         } else {
             res.status(401).json({ message:'Invalid credentials' })
         } 
@@ -87,29 +89,31 @@ function findAll(){
     return db('users').select('id','username', 'password')
 }
 
-function authorizeUser (req, res, next) {
-    const username = req.headers['x-username']
-    const password = req.headers['x-password']
+// function authorizeUser (req, res, next) {
+//     const username = req.headers['x-username']
+//     const password = req.headers['x-password']
     
-    if (!username || !password) {
-        return res.status(401).json({ message: 'Invalid Credentials' });
-    }
+//     if (!username || !password) {
+//         return res.status(401).json({ message: 'Invalid Credentials' });
+//     }
 
-    findUser({ username })//
-    .first()
-    .then(activeUser => {
-        if(activeUser && bcrypt.compareSync(password, activeUser.password)){
-            next()
-        } else {
-            res.status(401).json({ message: 'invalid creds' })
-        }
-    })
-    .catch(err => {
-        res.status(500).json(err)
-    })
-}
+//     findUser({ username })//
+//     .first()
+//     .then(activeUser => {
+//         if(activeUser && bcrypt.compareSync(password, activeUser.password)){
+//             next()
+//         } else {
+//             res.status(401).json({ message: 'invalid creds' })
+//         }
+//     })
+//     .catch(err => {
+//         res.status(500).json(err)
+//     })
+// }
+//now with session created will use restricted middleware and session cookie
 
-server.get('/api/users', authorizeUser, async (req, res) => {
+
+server.get('/api/users', restricted, async (req, res) => {
     try{
         const userAuthorizedFetchList = await findAll()
         res.status(200).json(userAuthorizedFetchList)
