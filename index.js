@@ -115,15 +115,27 @@ function findAll(){
 
 server.get('/api/users', restricted, async (req, res) => {
     try{
-        const userAuthorizedFetchList = await findAll()
-        res.status(200).json(userAuthorizedFetchList)
+        const userAuthorizedSoFetchList = await findAll()
+        res.status(200).json(userAuthorizedSoFetchList)
     } catch(error){
         res.status(500).json({ message:"Unable to retrieve user list"})
     }
   })
 
-
-
+server.get('/api/logout', restricted, (req, res) => {
+    if(req.session) {
+        req.session.destroy((err) => {
+            if(err) {
+                console.log(err)
+                return res.status(500).json({ message: "Could not logout"})
+            }
+            res.status(200).json({message:"Logout successful"})
+            res.end()
+        })
+    } else {
+        res.end()
+    }
+})
 
 //~~~~~~~~~~~~~~~~~~~server~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 const port = process.env.PORT || 6492;
